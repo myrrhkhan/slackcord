@@ -1,45 +1,37 @@
-from slackeventsapi import SlackEventAdapter
-from slack_sdk import WebClient
-import time
+'''from dotenv import load_dotenv
+
+load_dotenv()'''
+
 import os
+from slack_bolt import App
+from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-slack_signing_secret = os.environ.get("SLACK_SIGNING_SECRET")
-slack_events_adapter = SlackEventAdapter(slack_signing_secret, "/slack/events")
+# Initializes your app with your bot token and socket mode handler
+app = App(token=os.environ["SLACK_BOT_TOKEN"])
 
-# Create a SlackClient for your bot to use for Web API requests
-slack_bot_token = os.environ.get("SLACK_BOT_TOKEN")
-slack_client = WebClient(slack_bot_token)
+# Listens to incoming messages that contain "hello"
+# To learn available listener arguments,
+# visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
+@app.message("hello")
+def message_hello(message, say):
 
-channelPrimary = os.environ.get("CHANNEL_ID")
-def post_announcement(confirmation, channel):
-    slack_client.chat_postMessage(channel=channel, text=confirmation)
-    announcement = confirmation.replace("Broadcasting:\n", "")
-    while True:
-        try:
-            f = open("temp.txt", "x")
-        except:
-            time.sleep(30)
-            continue
-        f.write(announcement)
-        f.close()
-        break
-    return 0
+	# say() sends a message to the channel where the event was triggered
+	say(f"Hey there <@{message['user']}>!")
 
-# Example responder to greetings
-@slack_events_adapter.on("app_mention")
-def handle_message(event_data):
-    message = event_data["event"]
-    if message.get('type') == "app_mention":
-        print("app has been mentioned")
-        confirmation = message.get('text').replace("<@" + os.environ.get("BOT_USER_ID") + ">", "Broadcasting:\n")
-        channel = message["channel"]
-        post_announcement(confirmation, channel)
+def messageFromDiscord(message, say):
+	say(message)
 
-# Error events
-@slack_events_adapter.on("error")
-def error_handler(err):
-    print("ERROR: " + str(err))
+# Start your app
+if __name__ == "__main__":
+	SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
 
-# Once we have our event listeners configured, we can start the
-# Flask server with the default `/events` endpoint on port 3000
-slack_events_adapter.start(port=3000)
+while True:
+	#print("checking for a file :)")
+	try:
+		f = open("message.txt")
+		messageFromDiscord(f.read())
+		print("message printed")
+		f.close()
+		os.remove("message.txt")
+	except:
+		continue

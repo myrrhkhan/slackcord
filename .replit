@@ -1,0 +1,2 @@
+language = "python3"
+run = "python3 slackapp.py & python3 discordapp.py"
